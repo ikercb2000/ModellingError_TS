@@ -1,2 +1,2 @@
 # TFM_UOC
-Repository for my final year thesis at Universitat Oberta de Catalunya and Universitat Rovira i Virgili
+Repository for my project on Modelling the Error term of Time Series at Universitat Oberta de Catalunya and Universitat Rovira i Virgili.
