@@ -1,6 +1,6 @@
 # Project Modules
 
-from interfaces import *
+from DensityEstimation.interfaces import *
 
 # Other Modules
 
@@ -80,41 +80,28 @@ class KernelType(Enum):
 def kde_density(eval_points: np.ndarray, support: np.ndarray, bw: float, kernel: KernelType):
 
     n = eval_points.shape[0]
-    densities = []
     kernel_function = kernel
-
-    for x in support:
-        kernel_values = [kernel_function((x - xi)/bw) for xi in eval_points]
-        density = np.sum(kernel_values) / (n*bw)
-        densities.append(density)
-
-    return np.array(densities)
+    diff = (support[:, None] - eval_points[None, :]) / bw
+    kernel_values = kernel_function(diff)
+    densities = np.sum(kernel_values, axis=1) / (n * bw)
+    return densities
 
 def kde_variance(eval_points: np.ndarray, support: np.ndarray, bw: float, kernel: KernelType, densities: np.ndarray):
 
     n = eval_points.shape[0]
     variances = []
     kernel_function = kernel
-
-    for i, x in enumerate(support):
-
-        kernel_values_2 = [kernel_function((x - xi)/bw)**2 for xi in eval_points]
-        variance = (np.sum(kernel_values_2) / (n*bw)**2) - densities[i]**2/n
-        variances.append(variance)
-
-    return np.array(variances)
+    diff = (support[:, None] - eval_points[None, :]) / bw
+    kernel_values2 = kernel_function(diff)**2
+    variances = np.sum(kernel_values2, axis=1) / (n * bw)**2 - densities**2/n
+    return variances
 
 def kde_var_bootstrap(eval_points: np.ndarray, support: np.ndarray, bw: float, kernel: KernelType, densities: np.ndarray):
 
     n = eval_points.shape[0]
-    variances = []
     kernel_function = kernel
-
-    for i, x in enumerate(support):
-
-        kernel_values_2 = [kernel_function((x - xi)/bw)**2 for xi in eval_points]
-        variance = (np.sum(kernel_values_2) / n*(bw**2)) - densities[i]**2/n
-        variances.append(variance)
-
-    return np.array(variances)
+    diff = (support[:, None] - eval_points[None, :]) / bw
+    kernel_values_squared = kernel_function(diff) ** 2
+    variances = np.sum(kernel_values_squared, axis=1) / (n * bw) ** 2 - densities ** 2 / n
+    return variances
 

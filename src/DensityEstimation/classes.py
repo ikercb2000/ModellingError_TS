@@ -1,7 +1,7 @@
 # Project Modules
 
-from interfaces import *
-from utils import *
+from DensityEstimation.interfaces import *
+from DensityEstimation.utils import *
 
 # Other Modules
 
@@ -36,21 +36,28 @@ class KernelDensityEstimator:
                 "variances": self.variances,
                 }
 
-    def get_conf_bands(self, alpha: float = 0.05):
+    def get_conf_bands(self, alpha: float = 0.05, n_bootstrap: int = 1000):
 
-        bootstrap_sample = np.random.choice(self.eval_points, size=self.eval_points.shape[0], replace=True)
-        dens_bootstrap = kde_density(eval_points=bootstrap_sample,support=self.support,bw=self.bw,kernel=self.kde_type)
-        var_bootstrap = kde_var_bootstrap(eval_points=bootstrap_sample,support=self.support,bw=self.bw,kernel=self.kde_type,densities=dens_bootstrap)
-        var_bootstrap = np.maximum(var_bootstrap,1e-10)
-        sigma = np.sqrt(self.variances) 
-        t = (dens_bootstrap-self.densities)/sigma
-        upper_limit = self.densities - sigma * np.percentile(np.sort(t),(alpha/2)*100)
-        lower_limit = self.densities - sigma * np.percentile(np.sort(t),(1-alpha/2)*100)
+        bootstrap_densities = []
 
+        for _ in range(n_bootstrap):
+            bootstrap_sample = np.random.choice(self.eval_points, size=self.eval_points.shape[0], replace=True)
+            dens_bootstrap = kde_density(eval_points=bootstrap_sample, support=self.support, bw=self.bw, kernel=self.kde_type)
+            bootstrap_densities.append(dens_bootstrap)
+        
+        bootstrap_densities = np.array(bootstrap_densities)
+        bootstrap_variances = np.var(bootstrap_densities, axis=0)
+
+        sigma = np.sqrt(bootstrap_variances)
+        t_values = (bootstrap_densities - self.densities[None, :]) / sigma[None, :]
+        
+        lower_limit = self.densities - sigma * np.percentile(t_values, (1 - alpha / 2) * 100, axis=0)
+        upper_limit = self.densities - sigma * np.percentile(t_values, (alpha / 2) * 100, axis=0)
         self.up_conf = upper_limit
         self.low_conf = lower_limit
-
+        
         return upper_limit, lower_limit
+
     
     def plot_results(self, true_density: np.ndarray = None, experiment_name: str = "Experiment1", display: bool = False):
 
