@@ -1,48 +1,67 @@
+# Project modules
+
+from TimeSeries.interfaces import *
+
 # Other modules
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # Deterministic term
 
-def polinomForm(params: list, x: float):
+def polinomForm(params: list, x: list):
     total = []
-    for i in range(0,len(params)):
-        result = params[i]*(x**(i))
-        total.append(result)
-    return np.sum(total)
+    for i in x:
+        subtotal = []
+        for j in range(0,len(params)):
+            result = params[j]*(x[i]**(j))
+            subtotal.append(result)
+        total.append(np.sum(subtotal))
+    return total            
 
-def sinForm(params: dict, x: float):
-    return params["A"]*np.sin(params["B"]*x+params["C"])
+def sinForm(params: dict, x: list):
+    results = []
+    for i in x:
+        results.append(params["A"]*np.sin(params["B"]*x[i]+params["C"]))
+    return results
 
-def cosForm(params: dict, x: float):
-    return params["A"]*np.cos(params["B"]*x+params["C"])
+def cosForm(params: dict, x: list):
+    results = []
+    for i in x:
+        results.append(params["A"]*np.cos(params["B"]*x[i]+params["C"]))
+    return results
 
-# Distribution Simulation
+def plot_estimations(predictions: np.ndarray, series: pd.DataFrame, model_name: str, use_total_series: bool = True):
+    plt.figure(figsize=(10, 6))
+    plt.plot(predictions, label=f"Predictions for {model_name}", linestyle="--")
+    
+    if use_total_series == False:
+        plt.plot(series.index, series["Determ"], label="Real Deterministic Values")
+    else:
+        plt.plot(series.index, series["Value"], label="Real Overall Values")
+    
+    plt.xlabel("Time")
+    plt.ylabel("Value")
+    plt.ylim([-5,5])
+    plt.title(f"Time Series {model_name} Model Predictions")
+    plt.legend()
+    plt.show()
 
-def cauchy_dist(size=1000, loc=0, scale=1):
-    u = np.random.uniform(0, 1, size)
-    cauchy_samples = loc + scale * np.tan(np.pi * (u - 0.5))
-    return cauchy_samples
+def plot_multiple_estimations(pred_dict: dict, series: pd.DataFrame, use_total_series: bool = True):
+    plt.figure(figsize=(10, 6))
 
-def cauchy_pdf(x, loc, scale):
-    return 1 / (np.pi * scale * (1 + ((x - loc) / scale) ** 2))
-
-def gumbel_dist(size=1000, loc=0, scale=1):
-    u = np.random.uniform(0, 1, size)
-    gumbel_samples = loc - scale * np.log(-np.log(u))
-    return gumbel_samples
-
-def gumbel_pdf(x, loc, scale):
-    z = (x - loc) / scale
-    return (1 / scale) * np.exp(-(z + np.exp(-z)))
-
-def lognormal_pdf(x, mu, sigma):
-    return (1 / (x * sigma * np.sqrt(2 * np.pi))) * np.exp(-((np.log(x) - mu)**2) / (2 * sigma**2))
-
-def pareto_dist(size, xm, alpha):
-    u = np.random.uniform(0, 1, size)
-    return xm * (1 - u) ** (-1 / alpha)
-
-def pareto_pdf(x, xm, alpha):
-    return np.where(x >= xm, (alpha * xm**alpha) / (x**(alpha + 1)), 0)
+    for k in pred_dict.keys():
+        plt.plot(pred_dict[k], label=f"Predictions for {k}", linestyle="--")
+    
+    if use_total_series == False:
+        plt.plot(series.index, series["Determ"], label="Real Deterministic Values")
+    else:
+        plt.plot(series.index, series["Value"], label="Real Overall Values")
+    
+    plt.xlabel("Time")
+    plt.ylabel("Value")
+    plt.ylim([-5,5])
+    plt.title(f"Time Series Models' Predictions")
+    plt.legend()
+    plt.show()
