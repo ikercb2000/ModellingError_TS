@@ -15,6 +15,10 @@ class IDistSimulator(ABC):
         pass
 
     @abstractmethod
+    def draw(self, **kwargs):
+        pass
+
+    @abstractmethod
     def cdf(self, **kwargs):
         pass
 
