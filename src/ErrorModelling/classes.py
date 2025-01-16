@@ -38,7 +38,7 @@ class RecoveryPlotHist(IPlot):
             plt.plot(self.x_pdf, self.pdf, color='purple', linestyle='-', linewidth=2, label=f"{self.dist.__str__(for_title=True)} PDF")   
         
         plt.xlabel("Error (Real Value - Prediction)")
-        plt.ylabel("Frequency")
+        plt.ylabel("Density")
 
         if self.dist == None:
             plt.title(f"Histogram of Errors for a {loss_name} loss (No noise)")
