@@ -72,3 +72,27 @@ def show_figs_grid(figs: list, titles: list, fig_size: tuple = None, num_cols: i
 
     plt.tight_layout()
     plt.show()
+
+# Multiple Graphs Together Function
+
+
+def show_ts_together(array_list: list, determ: np.array, title: str):
+
+    num_series = len(array_list)
+
+    if num_series == 0:
+        print("No figures to display.")
+        return
+
+    plt.figure(figsize=(10, 8))
+
+    for i in range(0, num_series):
+        plt.plot(
+            range(0, len(array_list[i])), array_list[i], marker="o", linestyle="-", alpha=0.1, color="red")
+
+    plt.plot(range(0, len(determ)), determ, marker="o",
+             linestyle="-", alpha=1, color="darkred")
+
+    plt.title(title+f" | Number of points for each t = {num_series}")
+    plt.tight_layout()
+    plt.show()
