@@ -1,7 +1,7 @@
 # Project modules
 
-from src.ErrorModelling4TS.ts_simulator.interfaces import IDistSimulator
-from src.ErrorModelling4TS.ts_simulator.distributions import *
+from src.ts_simulator.interfaces import IDistSimulator
+from src.ts_simulator.distributions import *
 
 # Other modules
 
