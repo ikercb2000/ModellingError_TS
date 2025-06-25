@@ -2,19 +2,6 @@
 
 from abc import ABC, abstractmethod
 
-# Interface Time Series Simulator
-
-
-class ITSSimulator(ABC):
-
-    @abstractmethod
-    def simulate_noise(self, **kwargs):
-        pass
-
-    @abstractmethod
-    def get_ts(self, **kwargs):
-        pass
-
 # Distribution Simulator Interface
 
 

@@ -1,38 +1,40 @@
 # Project Modules
 
-from src.ErrorModelling4TS.ts_simulator.interfaces import ITSSimulator
-from src.ErrorModelling4TS.ts_simulator.distributions import IDistSimulator
+from src.ts_simulator.distributions import IDistSimulator
 
 # Other Modules
 
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 
 # Time Series Simulator Class
 
 
-class TimeSeriesSimulator(ITSSimulator):
-
+class TimeSeriesSimulator:
     def __str__(self):
-
         return "Time Series Simulator"
 
-    def simulate_noise(self, n: int, dist: IDistSimulator, seed: int):
-
+    def simulate_noise(self, n: int, dist: IDistSimulator, seed: int) -> np.ndarray:
+        """
+        Genera un vector de ruido de dimensión n usando la distribución dist.
+        """
         np.random.seed(seed)
-
         return np.array(dist.draw(size=n))
 
-    def get_ts(self, determ_series: pd.Series, noise_series: pd.Series, constant_determ: float = 0, constant_noise: float = 0):
+    def get_ts(
+        self,
+        determ_series: np.ndarray,
+        noise_series: np.ndarray,
+        constant_determ: float = 0.0,
+        constant_noise: float = 0.0
+    ) -> np.ndarray:
+        """
+        Combina el componente determinista y el ruido (ambos vectores de longitud n),
+        con ajustes constantes, y devuelve la serie simulada de valores.
+        """
+        # Aplicar constantes
+        det = determ_series + constant_determ
+        noise = noise_series + constant_noise
 
-        determ_series = pd.DataFrame(
-            np.array(determ_series) + constant_determ, columns=["Determ"], index=determ_series.index)
-        noise_series = pd.DataFrame(
-            np.array(noise_series) + constant_noise, columns=["Noise"], index=noise_series.index)
-        series_values = np.array(determ_series) + np.array(noise_series)
-        ts = pd.DataFrame(series_values, index=determ_series.index,
-                          columns=["Value"])
-        ts_df = pd.concat([determ_series, noise_series, ts], axis=1)
-
-        return ts_df
+        # Combinar
+        ts = det + noise
+        return ts
