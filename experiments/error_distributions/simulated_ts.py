@@ -5,23 +5,22 @@ from src.ts_simulator.distributions import NormalDist, CauchyDist, GumbelDist, L
 from src.ts_simulator.simulator import TimeSeriesSimulator
 from src.ts_simulator.utils import sinForm
 from src.graphics.classes import PlotSimulatedTS
-from src.utils import train_and_predict
+from src.dnn.utils import train_and_predict
 
 # libraries
 # ---------
 
-import keras
 import os
-import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
+import keras
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 # Time Series Simulation Parameters
 # --------------------------------
 
 n = 1000
-
 params = {"A": 1, "B": 0.05, "C": 1}
-
 seed = 12
 
 errors = {
@@ -32,85 +31,103 @@ errors = {
     "Pareto": ParetoDist({"xm": 0.01, "alpha": 1.25})
 }
 
-det_series = pd.DataFrame(sinForm(params=params, x=list(range(
-    0, n))), index=range(0, n), columns=["Determ"])
+# Create time vector and deterministic component
+times = np.arange(n)
+det_series = sinForm(params=params, x=times)
 
-# Time Series Simulators
-# ----------------------
-
+# Initialize simulator and plotter
 simul = TimeSeriesSimulator()
 plotter = PlotSimulatedTS()
+dict_series = {}
 
-# Time Series Simulation
-# ----------------------
+# Simulate original series (no noise)
+# -----------------------------------
 
-det_series = pd.DataFrame(
-    sinForm(params=params, x=list(range(0, n))), index=range(0, n), columns=["Determ"])
-ts_orig = simul.get_ts(determ_series=det_series["Determ"], noise_series=pd.Series(
-    [0]*len(det_series.index)), constant_determ=0, constant_noise=0)
+noise_zero = np.zeros(n)
+ts_orig = simul.get_ts(
+    determ_series=det_series,
+    noise_series=noise_zero,
+    constant_determ=0,
+    constant_noise=0
+)
+dict_series["Original"] = ts_orig
 
-dict_series = {"Original": ts_orig}
-
-# Save the figure without noise for comparison
-
-fig = plotter.plot_sim_ts(ts_orig, errors=None,
-                          title="Time Series without Noise")
+# Prepare output directory for series plots
 output_dir = os.path.join(
     os.getcwd(), "experiments/error_distributions/ts_plots")
 os.makedirs(output_dir, exist_ok=True)
-ruta_archivo = os.path.join(output_dir, f"series_no_noise.png")
-fig.savefig(ruta_archivo)
+
+# Plot and save original series
+fig = plotter.plot_sim_ts(
+    times,
+    ts_orig,
+    det_series,
+    errors=None,
+    title="Time Series without Noise"
+)
+fig.savefig(os.path.join(output_dir, "series_no_noise.png"))
 plt.close(fig)
 
-# Try for the different distributions
+# Simulate for each error distribution
+# ------------------------------------
 
-for dist in errors.keys():
-    globals()[f"noise_{dist.lower()}"] = pd.DataFrame(
-        simul.simulate_noise(n=n, dist=errors[dist], seed=12),
-        index=range(0, n), columns=["Noise"])
+for name, dist_sim in errors.items():
+    # Simulate noise and get theoretical mean
+    noise = simul.simulate_noise(n=n, dist=dist_sim, seed=seed)
+    theory = dist_sim.theory()
 
-    error_theory = errors[dist].theory()
+    # Generate series with noise (mean-adjusted)
+    ts = simul.get_ts(
+        determ_series=det_series,
+        noise_series=noise,
+        constant_determ=0,
+        constant_noise=-theory["mean"]
+    )
+    dict_series[name] = ts
 
-    globals()[f"ts_{dist.lower()}"] = simul.get_ts(determ_series=det_series["Determ"], noise_series=globals()[
-        f"noise_{dist.lower()}"], constant_determ=0, constant_noise=-error_theory["mean"])
-
-    dict_series[dist] = globals()[f"ts_{dist.lower()}"]
-
+    # Plot and save
     fig = plotter.plot_sim_ts(
-        globals()[f"ts_{dist.lower()}"], errors=globals()[
-            f"noise_{dist.lower()}"], title=f"Time Series with {dist} Noise")
-
-    ruta_archivo = os.path.join(output_dir, f"series_{dist}.png")
-    fig.savefig(ruta_archivo)
+        times,
+        ts,
+        det_series,
+        errors=noise,
+        title=f"Time Series with {name} Noise"
+    )
+    fig.savefig(os.path.join(output_dir, f"series_{name}.png"))
     plt.close(fig)
 
 # DNN Parameters
-# --------------------------------
+# --------------
 
 loss_functions = {
     "L1": "mae",
     "L2": "mse",
     "Huber": keras.losses.Huber(delta=0.5)
 }
-
-seq_length = 10
+seq_length = 1     # usar sólo un lag: x=z[:-1], y=z[1:]
 batch_size = 16
 epochs = 50
 learning_rate = 0.01
 
-# Training and Evaluation of DNN
-# --------------------------------
-
 dict_predictions = {}
 
-for series in dict_series.keys():
-    for loss in loss_functions.keys():
-        print(f"\n\nTraining {series} with {loss} loss function...\n\n")
-        globals()[f"results_{series}_{loss}"], globals()[
-            f"predictions_{series}_{loss}"] = train_and_predict(dict_series[series], loss_function=loss_functions[loss], loss_name=loss, seq_length=seq_length, batch_size=batch_size, epochs=epochs, learning_rate=learning_rate)
-        dict_predictions[f"{series}_{loss}"] = globals()[
-            f"predictions_{series}_{loss}"]
+# Training and Evaluation of DNN
+# ------------------------------
 
+for series_name, series_data in dict_series.items():
+    for loss_name, loss_fn in loss_functions.items():
+        print(
+            f"\n\nTraining {series_name} with {loss_name} loss function...\n\n")
+        results, preds = train_and_predict(
+            series_data,
+            loss_function=loss_fn,
+            scaler=StandardScaler(),
+            seq_length=seq_length,
+            batch_size=batch_size,
+            epochs=epochs,
+            learning_rate=learning_rate
+        )
+        dict_predictions[f"{series_name}_{loss_name}"] = preds
 
 # Prediction Results
 # ------------------
@@ -118,26 +135,21 @@ for series in dict_series.keys():
 plot_dir = os.path.join(
     os.getcwd(), "experiments/error_distributions/prediction_plots")
 os.makedirs(plot_dir, exist_ok=True)
+offset = seq_length  # Align predictions axis
 
-# Longitud de entrada usada en la red (por ejemplo 10)
-offset = seq_length  # Para alinear los targets y predicciones
-
-for key in dict_predictions.keys():
+for key, pred_array in dict_predictions.items():
     series_name, loss_name = key.split("_", 1)
+    original = dict_series[series_name]
 
-    # Obtener la serie original completa
-    original_series = dict_series[series_name].values.flatten()
+    # Prepare time axes
+    times_true = np.arange(len(original))
+    times_pred = np.arange(offset, offset + len(pred_array))
 
-    # Obtener la predicción
-    pred = dict_predictions[key].flatten()
-
-    # Ajustar el eje x para predicciones (porque las secuencias usan desplazamiento)
-    x_pred = list(range(offset, offset + len(pred)))
-    x_true = list(range(len(original_series)))
-
+    # Plot
     plt.figure(figsize=(12, 4))
-    plt.plot(x_true, original_series, label="Original (con ruido)", alpha=0.6)
-    plt.plot(x_pred, pred, label=f"Predicción ({loss_name})", linestyle='--')
+    plt.plot(times_true, original, label="Original (con ruido)", alpha=0.6)
+    plt.plot(times_pred, pred_array,
+             label=f"Predicción ({loss_name})", linestyle='--')
 
     plt.title(f"Predicción DNN - Serie: {series_name} | Loss: {loss_name}")
     plt.xlabel("Tiempo")
@@ -145,6 +157,7 @@ for key in dict_predictions.keys():
     plt.legend()
     plt.grid(True)
 
+    # Save
     fname = f"pred_{series_name}_{loss_name}.png"
     plt.savefig(os.path.join(plot_dir, fname))
     plt.close()

@@ -1,8 +1,8 @@
 # Package Modules
 
-from data_apis.interfaces import ICryptoExchangeProvider
-from data_apis.utils import *
-from data_apis.enums import *
+from src.crypto_apis.interfaces import ICryptoExchangeProvider
+from src.crypto_apis.utils import *
+from src.crypto_apis.enums import *
 
 # Other Modules
 
