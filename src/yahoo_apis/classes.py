@@ -17,9 +17,8 @@ class YahooFinanceAPI:
         end = self.datetime_to_string(end)
 
         self.df = yf.download(ticker, start=start, end=end,
-                              progress=False, auto_adjust=True)
+                              progress=True, auto_adjust=True)
 
-    def get_close_prices(self):
         if 'Adj Close' in self.df.columns:
             return self.df['Adj Close'].values
         elif 'Close' in self.df.columns:

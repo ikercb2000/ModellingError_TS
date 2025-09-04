@@ -1,6 +1,7 @@
 # Other Modules
 
 from abc import ABC, abstractmethod
+import numpy as np
 
 # Distribution Simulator Interface
 
@@ -8,25 +9,29 @@ from abc import ABC, abstractmethod
 class IDistSimulator(ABC):
 
     @abstractmethod
-    def __init__(self, params):
+    def __init__(self, params) -> None:
         pass
 
     @abstractmethod
-    def __str__(self):
+    def __str__(self) -> str:
         pass
 
     @abstractmethod
-    def draw(self, **kwargs):
+    def draw(self, **kwargs) -> np.ndarray:
         pass
 
     @abstractmethod
-    def cdf(self, **kwargs):
+    def cdf(self, **kwargs) -> float:
         pass
 
     @abstractmethod
-    def pdf(self, *kwargs):
+    def pdf(self, *kwargs) -> float:
         pass
 
     @abstractmethod
-    def theory(self, *kwargs):
+    def quantile(self, *kwargs) -> float:
+        pass
+
+    @abstractmethod
+    def theory(self, *kwargs) -> dict:
         pass

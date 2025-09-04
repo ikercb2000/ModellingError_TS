@@ -6,7 +6,7 @@ from src.ts_simulator.distributions import *
 # Other modules
 
 import numpy as np
-from scipy.special import erf
+from scipy.special import erf, erfinv
 
 # Distribution Simulation Classes
 
@@ -54,6 +54,12 @@ class NormalDist(IDistSimulator):
 
         return theory
 
+    def quantile(self, q):
+        loc = self.params["loc"]
+        scale = self.params["scale"]
+        q = np.asarray(q, dtype=float)
+        return loc + scale * np.sqrt(2.0) * erfinv(2.0*q - 1.0)
+
 
 class CauchyDist(IDistSimulator):
 
@@ -97,6 +103,22 @@ class CauchyDist(IDistSimulator):
         }
 
         return theory
+
+    def quantile(self, q):
+
+        loc = self.params["loc"]
+        scale = self.params["scale"]
+        q = np.asarray(q, dtype=float)
+
+        out = np.empty_like(q, dtype=float)
+        mask0 = q <= 0.0
+        mask1 = q >= 1.0
+        maskm = (~mask0) & (~mask1)
+
+        out[mask0] = -np.inf
+        out[mask1] = np.inf
+        out[maskm] = loc + scale * np.tan(np.pi*(q[maskm] - 0.5))
+        return out
 
 
 class GumbelDist(IDistSimulator):
@@ -147,6 +169,17 @@ class GumbelDist(IDistSimulator):
         }
 
         return theory
+
+    def quantile(self, q):
+
+        loc = self.params["loc"]
+        scale = self.params["scale"]
+        q = np.asarray(q, dtype=float)
+
+        out = loc - scale * np.log(-np.log(q))
+        out = np.where(q <= 0.0, -np.inf, out)
+        out = np.where(q >= 1.0,  np.inf, out)
+        return out
 
 
 class LogNormalDist(IDistSimulator):
@@ -209,6 +242,20 @@ class LogNormalDist(IDistSimulator):
 
         return theory
 
+    def quantile(self, q):
+
+        mean = self.params["loc"]
+        sigma = self.params["scale"]
+        q = np.asarray(q, dtype=float)
+
+        z = np.sqrt(2.0) * erfinv(2.0*q - 1.0)
+        out = np.exp(mean + sigma * z)
+
+        # Ajusta extremos exactamente
+        out = np.where(q <= 0.0, 0.0, out)
+        out = np.where(q >= 1.0, np.inf, out)
+        return out
+
 
 class ParetoDist(IDistSimulator):
 
@@ -260,3 +307,18 @@ class ParetoDist(IDistSimulator):
                   "median": median}
 
         return theory
+
+    def quantile(self, q):
+
+        xm = self.params["xm"]
+        alpha = self.params["alpha"]
+        q = np.asarray(q, dtype=float)
+
+        out = np.full_like(q, np.nan, dtype=float)
+        mask = (q >= 0.0) & (q <= 1.0)
+
+        out[mask] = xm * (1.0 - q[mask]) ** (-1.0 / alpha)
+        # extremos exactos
+        out = np.where(q == 0.0, xm, out)
+        out = np.where(q == 1.0, np.inf, out)
+        return out

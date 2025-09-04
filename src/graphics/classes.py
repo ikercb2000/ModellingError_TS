@@ -25,12 +25,13 @@ class PlotSimulatedTS:
 
         # Plot time series
         if scatter_plot:
-            ax.scatter(times, values, label='Time Series Value')
+            ax.scatter(times, values, label='Time Series Value', color="red")
         else:
-            ax.plot(times, values, label='Time Series Value')
+            ax.plot(times, values, label='Time Series Value', color="red")
 
         # Plot deterministic term
-        ax.plot(times, determ, label='Deterministic Term', linestyle='--')
+        ax.plot(times, determ, label='Deterministic Term',
+                linestyle='--', color="black", alpha=0.7)
 
         # Optionally include error series
         if show_errors and errors is not None:
@@ -60,16 +61,17 @@ class PlotSimulatedTS:
         label = f"{model_name} Predictions" if model_name else "Model Predictions"
 
         if scatter_plot:
-            ax.scatter(times, predictions, label=label)
+            ax.scatter(times, predictions, label=label, color="blue")
         else:
-            ax.plot(times, predictions, label=label)
+            ax.plot(times, predictions, label=label, color="blue")
 
         if determ is not None:
-            ax.plot(times, determ, label='Deterministic Term', linestyle='--')
+            ax.plot(times, determ, label='Deterministic Term',
+                    linestyle='--', alpha=0.7, color="black")
 
         if show_ts and true_values is not None:
             ax.plot(times, true_values,
-                    label='Actual Time Series', linestyle=':')
+                    label='Noisy Time Series', linestyle='-', color="red", alpha=0.6)
 
         ax.set_xlabel('Time')
         ax.set_ylabel('Value')
@@ -91,7 +93,8 @@ class PlotSimulatedTS:
         """
         fig, ax = plt.subplots(figsize=figsize)
         # Clean signal
-        ax.plot(x, y_clean, 'k--', linewidth=2, label='Clean Signal')
+        ax.plot(x, y_clean, 'k--', linewidth=2,
+                label='Deterministic Term', color="black", alpha=0.7)
         # Predictions
         for loss_name, series in predict.items():
             ax.plot(x, series, label=f'Prediction for {loss_name}', alpha=0.7)
